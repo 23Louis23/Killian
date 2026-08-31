@@ -174,23 +174,6 @@
   }
   textarea.note-input:focus{outline:none;border-color:var(--accent);}
 
-  .hooper-row{margin-bottom:16px;}
-  .hooper-row label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
-  .hooper-row label b{color:var(--accent);}
-  input[type="range"]{
-    width:100%;
-    accent-color:var(--accent);
-  }
-  .hooper-total{
-    text-align:center;
-    font-size:14px;
-    color:var(--muted);
-    margin-top:4px;
-    padding-top:12px;
-    border-top:1px solid var(--border);
-  }
-  .hooper-total b{color:var(--accent);font-size:18px;}
-
   #saveBtn{
     width:100%;
     background:var(--accent);
@@ -240,7 +223,6 @@
     <h1>Killian <span>· Renfo</span> ⚽</h1>
     <div class="tabs">
       <button class="tab-btn active" data-tab="seance">Séance</button>
-      <button class="tab-btn" data-tab="historique">Historique</button>
       <button class="tab-btn" data-tab="dashboard">Tableau de bord</button>
     </div>
   </header>
@@ -254,28 +236,6 @@
     <div class="card" id="warmupCard">
       <h2 id="seanceLabel">Séance</h2>
       <div class="warmup-text" id="warmupText"></div>
-    </div>
-
-    <div class="card" id="hooperCard">
-      <h2>Forme du jour (Hooper)</h2>
-      <div class="hooper-row">
-        <label>Qualité du sommeil <b id="val-sommeil">4</b></label>
-        <input type="range" min="1" max="7" value="4" id="hooper-sommeil">
-      </div>
-      <div class="hooper-row">
-        <label>Niveau de fatigue <b id="val-fatigue">4</b></label>
-        <input type="range" min="1" max="7" value="4" id="hooper-fatigue">
-      </div>
-      <div class="hooper-row">
-        <label>Stress <b id="val-stress">4</b></label>
-        <input type="range" min="1" max="7" value="4" id="hooper-stress">
-      </div>
-      <div class="hooper-row">
-        <label>Courbatures <b id="val-courbatures">4</b></label>
-        <input type="range" min="1" max="7" value="4" id="hooper-courbatures">
-      </div>
-      <div class="hooper-total">Score total : <b id="hooperTotal">16</b> / 28</div>
-      <textarea class="note-input" id="hooperNote" placeholder="Forme du jour en quelques mots" style="margin-top:12px;"></textarea>
     </div>
 
     <div class="card" id="exosCard">
@@ -296,13 +256,6 @@
 
     <button id="saveBtn">Enregistrer la séance</button>
     <div id="saveMsg"></div>
-  </div>
-
-  <div class="view" id="view-historique">
-    <div class="card">
-      <h2>Évolution du score Hooper</h2>
-      <div id="historiqueWrap"></div>
-    </div>
   </div>
 
   <div class="view" id="view-dashboard">
@@ -400,8 +353,6 @@
   let initialized = false;
   let existingEntry = null;
   let dashCharts = [];
-  let historiqueChart = null;
-  const hooperIds = ["sommeil","fatigue","stress","courbatures"];
 
   // ---------- PIN GATE ----------
   const pinScreen = document.getElementById("pinScreen");
@@ -444,26 +395,8 @@
       btn.classList.add("active");
       document.getElementById("view-" + btn.dataset.tab).classList.add("active");
       if(btn.dataset.tab === "dashboard") renderDashboard();
-      if(btn.dataset.tab === "historique") renderHistorique();
     });
   });
-
-  // ---------- HOOPER SLIDERS ----------
-  function bindHooperSliders(){
-    hooperIds.forEach(id => {
-      const input = document.getElementById("hooper-" + id);
-      const val = document.getElementById("val-" + id);
-      input.addEventListener("input", () => {
-        val.textContent = input.value;
-        updateHooperTotal();
-      });
-    });
-  }
-  function updateHooperTotal(){
-    let total = 0;
-    hooperIds.forEach(id => { total += parseInt(document.getElementById("hooper-" + id).value, 10); });
-    document.getElementById("hooperTotal").textContent = total;
-  }
 
   // ---------- INIT ----------
   function initApp(){
@@ -487,7 +420,6 @@
       loadSeance();
     });
 
-    bindHooperSliders();
     renderSeanceNav();
     loadSeance();
 
@@ -535,12 +467,6 @@
 
     document.getElementById("globalNote").value = "";
     document.getElementById("abdosNote").value = "";
-    document.getElementById("hooperNote").value = "";
-    hooperIds.forEach(id => {
-      document.getElementById("hooper-" + id).value = 4;
-      document.getElementById("val-" + id).textContent = 4;
-    });
-    updateHooperTotal();
     document.getElementById("saveMsg").textContent = "";
     existingEntry = null;
 
@@ -612,7 +538,6 @@
   function fillFromEntry(def, entry){
     const weights = entry.weights || {};
     const notes = entry.notes || {};
-    const hooper = entry.hooper || {};
     def.exercices.forEach(exo => {
       const val = weights[exo.nom];
       if(val === undefined) return;
@@ -627,14 +552,6 @@
     });
     if(notes.global) document.getElementById("globalNote").value = notes.global;
     if(notes.abdos) document.getElementById("abdosNote").value = notes.abdos;
-    if(hooper.note) document.getElementById("hooperNote").value = hooper.note;
-    hooperIds.forEach(id => {
-      if(hooper[id] !== undefined && hooper[id] !== null){
-        document.getElementById("hooper-" + id).value = hooper[id];
-        document.getElementById("val-" + id).textContent = hooper[id];
-      }
-    });
-    updateHooperTotal();
   }
 
   // ---------- SAVE ----------
@@ -655,22 +572,13 @@
       abdos: document.getElementById("abdosNote").value || ""
     };
 
-    const hooper = { note: document.getElementById("hooperNote").value || "" };
-    let hooperTotal = 0;
-    hooperIds.forEach(id => {
-      const v = parseInt(document.getElementById("hooper-" + id).value, 10);
-      hooper[id] = v;
-      hooperTotal += v;
-    });
-    hooper.total = hooperTotal;
-
     const payload = {
       athlete: ATHLETE,
       week: currentWeek,
       seance: currentSeance,
       label: def.label,
       date_recorded: new Date().toISOString().slice(0,10),
-      hooper: hooper,
+      hooper: null,
       weights: weights,
       notes: notes
     };
@@ -689,71 +597,6 @@
       saveMsg.textContent = "✓ Séance enregistrée";
       saveMsg.style.color = "var(--accent)";
     }
-  }
-
-  // ---------- HISTORIQUE (Hooper) ----------
-  async function renderHistorique(){
-    const wrap = document.getElementById("historiqueWrap");
-    wrap.innerHTML = "";
-
-    const { data, error } = await supabase
-      .from("sessions")
-      .select("*")
-      .eq("athlete", ATHLETE);
-
-    if(historiqueChart){ historiqueChart.destroy(); historiqueChart = null; }
-
-    if(error || !data || !data.length){
-      wrap.innerHTML = '<div class="empty-msg">Pas encore de données enregistrées.</div>';
-      return;
-    }
-
-    const weekOrder = CYCLES[currentCycle].weeks;
-    const sorted = data
-      .filter(s => s.hooper && s.hooper.total !== undefined && weekOrder.includes(s.week))
-      .sort((a,b) => {
-        const wa = weekOrder.indexOf(a.week), wb = weekOrder.indexOf(b.week);
-        if(wa !== wb) return wa - wb;
-        return (a.seance > b.seance) ? 1 : -1;
-      });
-
-    if(!sorted.length){
-      wrap.innerHTML = '<div class="empty-msg">Pas encore de données Hooper enregistrées.</div>';
-      return;
-    }
-
-    const labels = sorted.map(s => (PROGRAMME[s.week] ? PROGRAMME[s.week].label : s.week) + " · " + (SEANCES[s.seance] ? SEANCES[s.seance].label : s.seance));
-    const vals = sorted.map(s => s.hooper.total);
-
-    const block = document.createElement("div");
-    block.className = "chart-wrap";
-    const canvas = document.createElement("canvas");
-    block.appendChild(canvas);
-    wrap.appendChild(block);
-
-    historiqueChart = new Chart(canvas.getContext("2d"), {
-      type: "line",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: "Score Hooper",
-          data: vals,
-          borderColor: "#29b6f6",
-          backgroundColor: "rgba(41,182,246,0.15)",
-          tension: 0.3,
-          fill: true,
-          pointRadius: 4
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: "#8fb0e0" }, grid: { color: "#1c4986" } },
-          y: { min: 4, max: 28, ticks: { color: "#8fb0e0" }, grid: { color: "#1c4986" } }
-        }
-      }
-    });
   }
 
   // ---------- DASHBOARD ----------
